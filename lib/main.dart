@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:usb_serial/transaction.dart';
 import 'package:usb_serial/usb_serial.dart';
@@ -61,12 +62,13 @@ class _MyAppState extends State<MyApp> {
     await _port!.setDTR(true);
     await _port!.setRTS(true);
     await _port!.setPortParameters(
-        115200, UsbPort.DATABITS_8, UsbPort.STOPBITS_1, UsbPort.PARITY_NONE);
+        19200, UsbPort.DATABITS_5, UsbPort.STOPBITS_1, UsbPort.PARITY_NONE);
 
     _transaction = Transaction.stringTerminated(
         _port!.inputStream as Stream<Uint8List>, Uint8List.fromList([13, 10]));
 
     _subscription = _transaction!.stream.listen((String line) {
+      print(line);
       setState(() {
         _serialData.add(Text(line));
         if (_serialData.length > 20) {
@@ -74,6 +76,10 @@ class _MyAppState extends State<MyApp> {
         }
       });
     });
+
+    print('======');
+    print(_port);
+    print('======');
 
     setState(() {
       _status = "Connected";
@@ -87,7 +93,6 @@ class _MyAppState extends State<MyApp> {
     if (!devices.contains(_device)) {
       _connectTo(null);
     }
-    print(devices);
 
     devices.forEach((device) {
       _ports.add(ListTile(
@@ -114,6 +119,7 @@ class _MyAppState extends State<MyApp> {
     super.initState();
 
     UsbSerial.usbEventStream!.listen((UsbEvent event) {
+      print(event);
       _getPorts();
     });
 
@@ -129,45 +135,46 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+        debugShowCheckedModeBanner: false,
         home: Scaffold(
-      appBar: AppBar(
-        title: const Text('USB Serial Plugin example app'),
-      ),
-      body: Center(
-          child: Column(children: <Widget>[
-        Text(
-            _ports.length > 0
-                ? "Available Serial Ports"
-                : "No serial devices available",
-            style: Theme.of(context).textTheme.headline6),
-        ..._ports,
-        Text('Status: $_status\n'),
-        Text('info: ${_port.toString()}\n'),
-        ListTile(
-          title: TextField(
-            controller: _textController,
-            decoration: InputDecoration(
-              border: OutlineInputBorder(),
-              labelText: 'Text To Send',
+          appBar: AppBar(
+            title: const Text('USB Serial Plugin example app'),
+          ),
+          body: Center(
+              child: Column(children: <Widget>[
+            Text(
+                _ports.length > 0
+                    ? "Available Serial Ports"
+                    : "No serial devices available",
+                style: Theme.of(context).textTheme.bodySmall),
+            ..._ports,
+            Text('Status: $_status\n'),
+            Text('info: ${_port.toString()}\n'),
+            ListTile(
+              title: TextField(
+                controller: _textController,
+                decoration: InputDecoration(
+                  border: OutlineInputBorder(),
+                  labelText: 'Text To Send',
+                ),
+              ),
+              trailing: ElevatedButton(
+                child: Text("Send"),
+                onPressed: _port == null
+                    ? null
+                    : () async {
+                        if (_port == null) {
+                          return;
+                        }
+                        String data = _textController.text + "\r\n";
+                        await _port!.write(Uint8List.fromList(data.codeUnits));
+                        _textController.text = "";
+                      },
+              ),
             ),
-          ),
-          trailing: ElevatedButton(
-            child: Text("Send"),
-            onPressed: _port == null
-                ? null
-                : () async {
-                    if (_port == null) {
-                      return;
-                    }
-                    String data = _textController.text + "\r\n";
-                    await _port!.write(Uint8List.fromList(data.codeUnits));
-                    _textController.text = "";
-                  },
-          ),
-        ),
-        Text("Result Data", style: Theme.of(context).textTheme.headline6),
-        ..._serialData,
-      ])),
-    ));
+            // Text("Result Data", style: Theme.of(context).textTheme.bodyMedium),
+            // ..._serialData,
+          ])),
+        ));
   }
 }
