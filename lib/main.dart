@@ -65,7 +65,7 @@ class _MyAppState extends State<MyApp> {
         19200, UsbPort.DATABITS_5, UsbPort.STOPBITS_1, UsbPort.PARITY_NONE);
 
     _transaction = Transaction.stringTerminated(
-        _port!.inputStream as Stream<Uint8List>, Uint8List.fromList([13, 10]));
+        _port!.inputStream as Stream<Uint8List>, Uint8List.fromList([10]));
 
     _subscription = _transaction!.stream.listen((String line) {
       print(line);
